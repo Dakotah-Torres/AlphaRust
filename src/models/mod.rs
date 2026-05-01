@@ -1,1 +1,1 @@
-pub mod candel;
+pub mod candle;
