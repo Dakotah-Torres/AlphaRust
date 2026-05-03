@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
     // 1. Move imports INSIDE the module room
-    use crate::engine::ingester::CandleIngester;
+    use crate::engine::ingester::CsvIngester;
     use std::time::Instant;
     use std::fs::File;
 
@@ -13,7 +13,7 @@ mod test {
         let test_data = File::open(file_location)?;
 
         // 3. Create the ingester
-        let mut ingester = CandleIngester::new(test_data);
+        let mut ingester = CsvIngester::new(test_data);
 
         // 4. Assert on a boolean (is_some check)
         assert!(ingester.next().is_some());
@@ -29,7 +29,7 @@ mod test {
         let test_data = File::open(file_location)?;
 
         // 3. Create the ingester
-        let mut ingester = CandleIngester::new(test_data);
+        let mut ingester = CsvIngester::new(test_data);
 
 
         let start = Instant::now();
@@ -55,7 +55,7 @@ mod test {
         let test_data = File::open(file_location)?;
 
         // 3. Create the ingester
-        let mut ingester = CandleIngester::new(test_data);
+        let mut ingester = CsvIngester::new(test_data);
 
 
         let start = Instant::now();
@@ -81,7 +81,7 @@ mod test {
         let test_data = File::open(file_location)?;
 
         // 3. Create the ingester
-        let mut ingester = CandleIngester::new(test_data);
+        let mut ingester = CsvIngester::new(test_data);
 
 
         let start = Instant::now();
@@ -107,7 +107,7 @@ mod test {
         let test_data = File::open(file_location)?;
 
         // 3. Create the ingester
-        let mut ingester = CandleIngester::new(test_data);
+        let mut ingester = CsvIngester::new(test_data);
 
 
         let start = Instant::now();

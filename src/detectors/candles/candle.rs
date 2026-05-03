@@ -1,7 +1,11 @@
-use serde::{Deserialize};
+use serde::{Deserialize, Deserializer};
 use serde;
 
-
+fn deserialize_bool_from_str<'de, D: Deserializer<'de>>(d: D) -> Result<bool, D::Error> {
+    // your logic here
+    let s = String::deserialize(d)?;
+    Ok( s == "True")
+}
 #[derive(Deserialize)]
 pub struct Candle{
     pub timestamp: u64,
@@ -9,7 +13,8 @@ pub struct Candle{
     pub high: f64,
     pub low: f64,
     pub close: f64,
-    pub is_closed: String, 
+    #[serde(deserialize_with = "deserialize_bool_from_str")]
+    pub is_closed: bool, 
 }
 
 pub struct Wick {
@@ -24,7 +29,7 @@ impl Wick {
 }
 
 impl Candle {
-    fn new(open: f64, high: f64, low:f64, close: f64, timestamp: u64, is_closed: String) -> Self {
+    fn new(open: f64, high: f64, low:f64, close: f64, timestamp: u64, is_closed: bool) -> Self {
         Self { open, high, low, close, timestamp, is_closed }
     }
 
@@ -37,7 +42,7 @@ impl Candle {
     }
 
     pub fn get_top_wick(&self) -> Result<Wick, String> {
-        if self.is_closed == "True" {
+        if self.is_closed  {
             if self.is_bullish() {
                 let top_wick = Wick::new(self.high, self.close, self.timestamp);
                 Ok(top_wick)
@@ -56,7 +61,7 @@ impl Candle {
     }
 
     pub fn get_bottom_wick(&self) -> Result<Wick, String> {
-        if self.is_closed == "True" {
+        if self.is_closed {
             if self.is_bullish() {
                 let bottom_wick = Wick::new(self.open, self.low, self.timestamp);
                 Ok(bottom_wick)

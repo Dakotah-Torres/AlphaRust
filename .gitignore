@@ -1,1 +1,6 @@
 /target
+/test/test_data
+/performance_logs/*
+
+*.csv
+*.parquet

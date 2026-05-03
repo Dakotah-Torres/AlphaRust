@@ -1,23 +1,31 @@
 use crate::detectors::candles::candle::Candle;
+use crate::engine::traits::CandleSource;
 use std::io::Read; 
 use csv::Reader;
 
-pub struct CandleIngester<R: Read> {
-    pub reader: Reader<R>, 
+pub struct CsvIngester<R: Read> {
+    candle_iter: csv::DeserializeRecordsIntoIter<R, Candle>,
 }
 
-impl<R: Read> CandleIngester<R> {
+pub struct ParquetIngester {}
+
+pub struct WebhookIngester {}
+
+
+impl<R: Read> CsvIngester<R> {
         pub fn new( data_source: R) -> Self {
-            Self {reader: Reader::from_reader(data_source)}
+            Self { 
+                candle_iter: Reader::from_reader(data_source).into_deserialize() 
+            }
         }
     }
 
-impl<R: Read> Iterator for CandleIngester<R>{
+impl<R: Read> Iterator for CsvIngester<R>{
     type Item = Candle;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            match self.reader.deserialize::<Candle>().next() {
+            match self.candle_iter.next() {
                 Some(Ok(c)) => {
                     return Some(c);
                     
@@ -33,4 +41,8 @@ impl<R: Read> Iterator for CandleIngester<R>{
     }
 }
 
-
+impl<R: Read> CandleSource for CsvIngester<R> {
+    fn next_candle(&mut self) -> Option<Candle> {
+        self.next()
+    }
+}
