@@ -31,7 +31,9 @@ fn generate_candles(filename: &str, count: usize) -> std::io::Result<()> {
 
 fn main() {
     // Generate both files
+    generate_candles("/Users/dakotahtorres/Desktop/Organized_Desktop/AlphaRust/src/test/test_data/candles_10k.csv", 10_000).unwrap();
     generate_candles("/Users/dakotahtorres/Desktop/Organized_Desktop/AlphaRust/src/test/test_data/candles_100k.csv", 100_000).unwrap();
     generate_candles("/Users/dakotahtorres/Desktop/Organized_Desktop/AlphaRust/src/test/test_data/candles_500k.csv", 500_000).unwrap();
     generate_candles("/Users/dakotahtorres/Desktop/Organized_Desktop/AlphaRust/src/test/test_data/candles_1M.csv", 1_000_000).unwrap();
+    generate_candles("/Users/dakotahtorres/Desktop/Organized_Desktop/AlphaRust/src/test/test_data/candles_10M.csv", 10_000_000).unwrap()
 }

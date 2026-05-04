@@ -7,7 +7,7 @@ mod test {
 
     #[test]
     fn candle_ingestion_test() -> Result<(), Box<dyn std::error::Error>> {
-        let file_location = "/Users/dakotahtorres/Desktop/Organized_Desktop/AlphaRust/src/test/test_data/test_candles.csv";
+        let file_location = "/Users/dakotahtorres/Desktop/Organized_Desktop/AlphaRust/src/test/test_data/candles_10k.csv";
         
         // 2. Use '?' to handle the Result of opening the file
         let test_data = File::open(file_location)?;
@@ -21,106 +21,38 @@ mod test {
         // 5. Return Ok(()) to signal the test passed
         Ok(())
     }
-    #[test]
-    fn performance_test() -> Result<(), Box<dyn std::error::Error>>{
-        let file_location = "/Users/dakotahtorres/Desktop/Organized_Desktop/AlphaRust/src/test/test_data/test_candles.csv";
-        
-        // 2. Use '?' to handle the Result of opening the file
-        let test_data = File::open(file_location)?;
 
-        // 3. Create the ingester
-        let mut ingester = CsvIngester::new(test_data);
-
-
-        let start = Instant::now();
-        let mut count = 0;
-        let start = std::time::Instant::now();
-        let total = ingester.count(); // Runs the engine at full speed
-        let duration = start.elapsed();
-
-        let speed = total as f64 / duration.as_secs_f64();
-        println!("--- PERFORMANCE REPORT ---");
-        println!("Total Candles: {}", total);
-        println!("Total Time: {:?}", duration);
-        println!("Speed: {:.2} candles/sec", speed);
-
-        Ok(())
-    }
 
     #[test]
-    fn performance_test_100K() -> Result<(), Box<dyn std::error::Error>>{
-        let file_location = "/Users/dakotahtorres/Desktop/Organized_Desktop/AlphaRust/src/test/test_data/candles_100k.csv";
-        
-        // 2. Use '?' to handle the Result of opening the file
-        let test_data = File::open(file_location)?;
+    fn performance_test_all() -> Result<(), Box<dyn std::error::Error>> {
+        let files = vec![
+            ("10K", "candles_10k.csv"),
+            ("100k", "candles_100k.csv"),
+            ("500k", "candles_500k.csv"),
+            ("1M", "candles_1M.csv"),
+            ("10M", "candles_10M.csv")
+        ];
 
-        // 3. Create the ingester
-        let mut ingester = CsvIngester::new(test_data);
+        for (label, filename) in files {
+            let path = format!(
+                "{}/src/test/test_data/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                filename
+            );
 
+            let test_data = File::open(&path)?;
+            let ingester = CsvIngester::new(test_data);
 
-        let start = Instant::now();
-        let mut count = 0;
-        let start = std::time::Instant::now();
-        let total = ingester.count(); // Runs the engine at full speed
-        let duration = start.elapsed();
+            let start = std::time::Instant::now();
+            let total = ingester.count();
+            let duration = start.elapsed();
+            let speed = total as f64 / duration.as_secs_f64();
 
-        let speed = total as f64 / duration.as_secs_f64();
-        println!("--- PERFORMANCE REPORT ---");
-        println!("Total Candles: {}", total);
-        println!("Total Time: {:?}", duration);
-        println!("Speed: {:.2} candles/sec", speed);
-
-        Ok(())
-    }
-
-    #[test]
-    fn performance_test_500K() -> Result<(), Box<dyn std::error::Error>>{
-        let file_location = "/Users/dakotahtorres/Desktop/Organized_Desktop/AlphaRust/src/test/test_data/candles_500k.csv";
-        
-        // 2. Use '?' to handle the Result of opening the file
-        let test_data = File::open(file_location)?;
-
-        // 3. Create the ingester
-        let mut ingester = CsvIngester::new(test_data);
-
-
-        let start = Instant::now();
-        let mut count = 0;
-        let start = std::time::Instant::now();
-        let total = ingester.count(); // Runs the engine at full speed
-        let duration = start.elapsed();
-
-        let speed = total as f64 / duration.as_secs_f64();
-        println!("--- PERFORMANCE REPORT ---");
-        println!("Total Candles: {}", total);
-        println!("Total Time: {:?}", duration);
-        println!("Speed: {:.2} candles/sec", speed);
-
-        Ok(())
-    }
-
-     #[test]
-    fn performance_test_1M() -> Result<(), Box<dyn std::error::Error>>{
-        let file_location = "/Users/dakotahtorres/Desktop/Organized_Desktop/AlphaRust/src/test/test_data/candles_1M.csv";
-        
-        // 2. Use '?' to handle the Result of opening the file
-        let test_data = File::open(file_location)?;
-
-        // 3. Create the ingester
-        let mut ingester = CsvIngester::new(test_data);
-
-
-        let start = Instant::now();
-        let mut count = 0;
-        let start = std::time::Instant::now();
-        let total = ingester.count(); // Runs the engine at full speed
-        let duration = start.elapsed();
-
-        let speed = total as f64 / duration.as_secs_f64();
-        println!("--- PERFORMANCE REPORT ---");
-        println!("Total Candles: {}", total);
-        println!("Total Time: {:?}", duration);
-        println!("Speed: {:.2} candles/sec", speed);
+            println!("--- {} ---", label);
+            println!("Total Candles: {}", total);
+            println!("Total Time: {:?}", duration);
+            println!("Speed: {:.2} candles/sec", speed);
+        }
 
         Ok(())
     }
