@@ -1,2 +1,3 @@
-pub mod candles;
+pub mod primatives;
+
 pub mod swings;

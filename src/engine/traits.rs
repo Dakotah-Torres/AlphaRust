@@ -1,4 +1,4 @@
-use crate::detectors::candles::candle::Candle;
+use crate::detectors::primatives::candles::candle::Candle;
 
 
 pub trait CandleSource {

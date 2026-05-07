@@ -1,4 +1,4 @@
-use crate::detectors::candles::candle::Candle;
+use crate::detectors::primatives::candles::candle::Candle;
 use crate::engine::traits::CandleSource;
 use std::io::Read; 
 use csv::Reader;

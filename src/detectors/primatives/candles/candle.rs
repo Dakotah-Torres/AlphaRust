@@ -1,17 +1,21 @@
-use serde::{Deserialize};
+use serde::{Deserialize, Deserializer};
 use serde;
 
+fn deserialize_bool_from_str<'de, D: Deserializer<'de>>(d: D) -> Result<bool, D::Error> {
+    let s = String::deserialize(d)?;
+    Ok(s == "True" || s == "true")
+}
 
 
-#[derive(Deserialize, Clone)]
-pub struct Candle{
+#[derive(Deserialize, Clone, Copy)]
+pub struct Candle {
     pub timestamp: u64,
     pub open: f64,
     pub high: f64,
     pub low: f64,
     pub close: f64,
+    #[serde(deserialize_with = "deserialize_bool_from_str")]
     pub is_closed: bool,
-
 }
 
 pub struct Wick {

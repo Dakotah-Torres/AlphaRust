@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlphaRust — Swing Detection</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0e0f11; --surface: #16181c; --border: rgba(255,255,255,0.08);
+    --text: #e8e6e0; --muted: #888780;
+    --green: #1D9E75; --green-dim: #0F6E56;
+    --red: #D85A30;   --red-dim: #993C1D;
+    --gray: #5F5E5A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'SF Mono','Fira Code',monospace; padding: 2rem; min-height: 100vh; }
+  header { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 0.5px solid var(--border); padding-bottom: 1rem; }
+  header h1 { font-size: 18px; font-weight: 500; letter-spacing: 0.05em; }
+  header span { font-size: 12px; color: var(--muted); }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .metric { background: var(--surface); border: 0.5px solid var(--border); border-radius: 8px; padding: 0.875rem 1rem; }
+  .metric-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .metric-value { font-size: 22px; font-weight: 500; }
+  .metric-value.green { color: var(--green); }
+  .metric-value.red   { color: var(--red); }
+  .chart-wrap { background: var(--surface); border: 0.5px solid var(--border); border-radius: 8px; padding: 1.25rem; }
+  .legend { display: flex; gap: 1.5rem; margin-bottom: 1rem; font-size: 12px; color: var(--muted); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ALPHARUST / swing_visualize</h1>
+  <span>window = 3 &nbsp;|&nbsp; mode = wick</span>
+</header>
+<div class="metrics">
+  <div class="metric"><div class="metric-label">Total candles</div><div class="metric-value" id="mTotal">—</div></div>
+  <div class="metric"><div class="metric-label">Swing highs</div><div class="metric-value green" id="mHighs">—</div></div>
+  <div class="metric"><div class="metric-label">Swing lows</div><div class="metric-value red" id="mLows">—</div></div>
+  <div class="metric"><div class="metric-label">Detection rate</div><div class="metric-value" id="mRate">—</div></div>
+</div>
+<div class="chart-wrap">
+  <div class="legend">
+    <span><span class="dot" style="background:#1D9E75"></span>Swing high</span>
+    <span><span class="dot" style="background:#D85A30"></span>Swing low</span>
+    <span><span class="dot" style="background:#5F5E5A"></span>Normal</span>
+  </div>
+  <div style="position:relative;width:100%;height:460px;">
+    <canvas id="chart" role="img" aria-label="Candlestick chart with swing detection markers"></canvas>
+  </div>
+</div>
+<script>
+const candles = [{"i":0,"o":45000.00,"h":45010.08,"l":44997.43,"c":45002.96},{"i":1,"o":45004.70,"h":45013.01,"l":44987.48,"c":44994.02},{"i":2,"o":44996.15,"h":44996.49,"l":44991.70,"c":44994.19},{"i":3,"o":44993.86,"h":45000.50,"l":44982.70,"c":44989.09},{"i":4,"o":44988.19,"h":44989.68,"l":44972.03,"c":44982.45},{"i":5,"o":44980.74,"h":44991.25,"l":44963.77,"c":44973.53},{"i":6,"o":44972.53,"h":44992.72,"l":44966.71,"c":44985.86},{"i":7,"o":44983.52,"h":45001.80,"l":44973.49,"c":44995.07},{"i":8,"o":44993.90,"h":45014.96,"l":44990.13,"c":45007.65},{"i":9,"o":45008.41,"h":45024.52,"l":45002.25,"c":45019.81},{"i":10,"o":45019.62,"h":45042.50,"l":45010.64,"c":45036.06},{"i":11,"o":45038.26,"h":45069.29,"l":45038.06,"c":45056.44},{"i":12,"o":45058.45,"h":45073.22,"l":45055.91,"c":45068.10},{"i":13,"o":45070.33,"h":45087.63,"l":45070.13,"c":45078.58},{"i":14,"o":45076.66,"h":45109.53,"l":45072.20,"c":45107.30},{"i":15,"o":45107.55,"h":45108.75,"l":45094.98,"c":45099.50},{"i":16,"o":45101.63,"h":45105.84,"l":45089.53,"c":45093.47},{"i":17,"o":45096.42,"h":45099.47,"l":45077.97,"c":45086.44},{"i":18,"o":45087.27,"h":45087.47,"l":45069.06,"c":45075.93},{"i":19,"o":45076.47,"h":45083.13,"l":45057.56,"c":45066.55},{"i":20,"o":45065.38,"h":45087.06,"l":45059.64,"c":45081.80},{"i":21,"o":45084.25,"h":45100.34,"l":45075.87,"c":45095.02},{"i":22,"o":45097.18,"h":45111.69,"l":45087.97,"c":45101.20},{"i":23,"o":45103.68,"h":45125.65,"l":45097.77,"c":45116.12},{"i":24,"o":45115.05,"h":45128.78,"l":45101.65,"c":45119.93},{"i":25,"o":45120.08,"h":45132.49,"l":45117.18,"c":45131.39},{"i":26,"o":45134.72,"h":45148.58,"l":45129.01,"c":45143.50},{"i":27,"o":45145.45,"h":45154.88,"l":45142.63,"c":45149.00},{"i":28,"o":45148.57,"h":45162.97,"l":45140.49,"c":45161.93},{"i":29,"o":45159.93,"h":45167.75,"l":45153.64,"c":45164.81},{"i":30,"o":45161.34,"h":45181.67,"l":45154.39,"c":45170.60},{"i":31,"o":45167.06,"h":45173.01,"l":45158.96,"c":45168.27},{"i":32,"o":45170.06,"h":45187.54,"l":45157.33,"c":45178.38},{"i":33,"o":45177.14,"h":45203.81,"l":45174.82,"c":45196.71},{"i":34,"o":45193.92,"h":45211.37,"l":45186.05,"c":45209.55},{"i":35,"o":45207.61,"h":45216.19,"l":45197.82,"c":45214.48},{"i":36,"o":45216.11,"h":45229.00,"l":45206.42,"c":45221.79},{"i":37,"o":45219.34,"h":45234.11,"l":45210.05,"c":45228.15},{"i":38,"o":45226.49,"h":45240.39,"l":45220.33,"c":45234.88},{"i":39,"o":45237.29,"h":45259.63,"l":45235.14,"c":45249.37},{"i":40,"o":45248.49,"h":45255.85,"l":45243.38,"c":45253.73},{"i":41,"o":45251.45,"h":45265.10,"l":45251.25,"c":45258.98},{"i":42,"o":45259.44,"h":45280.56,"l":45256.89,"c":45271.25},{"i":43,"o":45274.26,"h":45295.67,"l":45264.14,"c":45287.88},{"i":44,"o":45285.09,"h":45289.83,"l":45260.16,"c":45267.88},{"i":45,"o":45264.98,"h":45270.32,"l":45262.88,"c":45267.98},{"i":46,"o":45265.39,"h":45269.56,"l":45249.23,"c":45256.75},{"i":47,"o":45258.23,"h":45269.08,"l":45254.84,"c":45265.57},{"i":48,"o":45267.57,"h":45277.14,"l":45256.72,"c":45262.66},{"i":49,"o":45261.14,"h":45270.36,"l":45252.95,"c":45257.64},{"i":50,"o":45258.78,"h":45280.17,"l":45252.26,"c":45276.38},{"i":51,"o":45273.93,"h":45288.67,"l":45270.68,"c":45285.43},{"i":52,"o":45286.36,"h":45294.09,"l":45278.61,"c":45288.84},{"i":53,"o":45290.58,"h":45306.72,"l":45285.72,"c":45305.14},{"i":54,"o":45301.57,"h":45330.84,"l":45299.76,"c":45321.18},{"i":55,"o":45322.96,"h":45341.02,"l":45310.37,"c":45337.24},{"i":56,"o":45338.63,"h":45357.96,"l":45325.41,"c":45353.07},{"i":57,"o":45354.45,"h":45367.46,"l":45346.71,"c":45364.44},{"i":58,"o":45365.94,"h":45391.51,"l":45357.54,"c":45383.88},{"i":59,"o":45386.34,"h":45407.04,"l":45381.08,"c":45399.64},{"i":60,"o":45402.01,"h":45418.25,"l":45399.13,"c":45410.94},{"i":61,"o":45407.62,"h":45432.41,"l":45400.74,"c":45427.18},{"i":62,"o":45424.33,"h":45451.02,"l":45418.61,"c":45443.87},{"i":63,"o":45439.42,"h":45456.94,"l":45435.20,"c":45448.08},{"i":64,"o":45450.08,"h":45463.52,"l":45444.91,"c":45451.56},{"i":65,"o":45453.32,"h":45473.78,"l":45451.94,"c":45471.31},{"i":66,"o":45470.50,"h":45475.02,"l":45465.37,"c":45467.72},{"i":67,"o":45470.35,"h":45491.17,"l":45463.28,"c":45487.05},{"i":68,"o":45487.65,"h":45498.22,"l":45483.45,"c":45491.43},{"i":69,"o":45493.59,"h":45508.31,"l":45488.69,"c":45504.49},{"i":70,"o":45505.60,"h":45520.06,"l":45501.21,"c":45514.64},{"i":71,"o":45514.26,"h":45528.12,"l":45509.09,"c":45522.74},{"i":72,"o":45518.44,"h":45543.84,"l":45515.33,"c":45538.28},{"i":73,"o":45539.16,"h":45557.30,"l":45535.78,"c":45547.38},{"i":74,"o":45545.99,"h":45550.23,"l":45519.88,"c":45524.11},{"i":75,"o":45521.00,"h":45542.36,"l":45517.41,"c":45534.47},{"i":76,"o":45536.35,"h":45553.55,"l":45534.02,"c":45548.95},{"i":77,"o":45550.44,"h":45572.13,"l":45538.68,"c":45565.30},{"i":78,"o":45567.77,"h":45581.51,"l":45563.69,"c":45576.19},{"i":79,"o":45574.39,"h":45589.13,"l":45568.00,"c":45583.30},{"i":80,"o":45581.93,"h":45592.70,"l":45567.55,"c":45570.90},{"i":81,"o":45573.41,"h":45574.26,"l":45547.96,"c":45556.88},{"i":82,"o":45554.73,"h":45560.98,"l":45534.53,"c":45540.87},{"i":83,"o":45540.81,"h":45546.37,"l":45537.20,"c":45538.42},{"i":84,"o":45536.28,"h":45543.42,"l":45521.87,"c":45525.82},{"i":85,"o":45524.71,"h":45532.51,"l":45520.45,"c":45531.05},{"i":86,"o":45530.07,"h":45531.54,"l":45512.95,"c":45524.03},{"i":87,"o":45526.76,"h":45553.80,"l":45520.60,"c":45547.83},{"i":88,"o":45544.74,"h":45561.14,"l":45541.16,"c":45553.27},{"i":89,"o":45551.63,"h":45572.25,"l":45546.94,"c":45559.74},{"i":90,"o":45559.51,"h":45567.67,"l":45531.58,"c":45545.03},{"i":91,"o":45542.49,"h":45547.26,"l":45522.92,"c":45530.43},{"i":92,"o":45528.84,"h":45534.64,"l":45519.74,"c":45529.00},{"i":93,"o":45531.32,"h":45546.05,"l":45528.76,"c":45539.34},{"i":94,"o":45543.10,"h":45558.03,"l":45536.46,"c":45551.42},{"i":95,"o":45550.11,"h":45551.87,"l":45526.72,"c":45535.07},{"i":96,"o":45530.82,"h":45541.27,"l":45518.63,"c":45523.92},{"i":97,"o":45523.84,"h":45542.69,"l":45518.30,"c":45532.67},{"i":98,"o":45533.18,"h":45558.67,"l":45525.39,"c":45549.68},{"i":99,"o":45549.01,"h":45560.85,"l":45544.04,"c":45560.32}];
+const highSet = new Set([1,3,6,7,8,9,10,11,12,13,14,15,16,17,18,21,22,23,24,25,26,27,28,29,30,32,33,34,35,36,37,38,39,41,42,43,44,45,48,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,76,77,78,79,80,81,82,83,84,87,88,89,90,91,94,95,98,99]);
+const lowSet  = new Set([1,3,4,5,6,7,8,9,10,11,12,13,14,17,18,19,20,21,22,23,24,25,26,28,29,30,32,33,34,35,36,37,38,39,40,41,42,44,46,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,67,68,69,70,71,72,75,76,77,78,81,82,84,85,86,87,90,91,92,95,96,97]);
+
+document.getElementById('mTotal').textContent = candles.length;
+document.getElementById('mHighs').textContent = highSet.size;
+document.getElementById('mLows').textContent  = lowSet.size;
+document.getElementById('mRate').textContent  =
+  ((highSet.size + lowSet.size) / candles.length * 100).toFixed(1) + '%';
+
+const colFor = i => {
+  if (highSet.has(i)) return { body: '#1D9E75', wick: '#0F6E56' };
+  if (lowSet.has(i))  return { body: '#D85A30', wick: '#993C1D' };
+  return { body: '#5F5E5A', wick: '#444441' };
+};
+
+const candlestickPlugin = {
+  id: 'cs',
+  afterDatasetsDraw(chart) {
+    const { ctx, scales: { x, y } } = chart;
+    const bw = Math.max((x.getPixelForValue(1) - x.getPixelForValue(0)) * 0.65, 2);
+    candles.forEach((d, i) => {
+      const xp  = x.getPixelForValue(i);
+      const col = colFor(i);
+      const yO  = y.getPixelForValue(d.o);
+      const yC  = y.getPixelForValue(d.c);
+      const yH  = y.getPixelForValue(d.h);
+      const yL  = y.getPixelForValue(d.l);
+      ctx.strokeStyle = col.wick; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(xp, yH); ctx.lineTo(xp, yL); ctx.stroke();
+      ctx.fillStyle = col.body;
+      ctx.fillRect(xp - bw / 2, Math.min(yO, yC), bw, Math.max(Math.abs(yC - yO), 1));
+    });
+  }
+};
+
+const minY = Math.min(...candles.map(c => c.l));
+const maxY = Math.max(...candles.map(c => c.h));
+const pad  = (maxY - minY) * 0.06;
+
+new Chart(document.getElementById('chart'), {
+  type: 'scatter',
+  data: { datasets: [{ data: candles.map((_, i) => ({ x: i, y: 0 })), pointRadius: 0 }] },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#16181c', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+        titleColor: '#888780', bodyColor: '#e8e6e0',
+        callbacks: {
+          title: items => `Candle ${items[0].parsed.x + 1}`,
+          label: item => {
+            const d = candles[item.parsed.x];
+            const i = item.parsed.x;
+            const tag = highSet.has(i) ? ' ▲ SWING HIGH' : lowSet.has(i) ? ' ▼ SWING LOW' : '';
+            return `O:${d.o.toFixed(2)}  H:${d.h.toFixed(2)}  L:${d.l.toFixed(2)}  C:${d.c.toFixed(2)}${tag}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: { type: 'linear', min: 0, max: candles.length - 1, ticks: { color: '#888780', maxTicksLimit: 12, callback: v => v + 1 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { min: parseFloat((minY - pad).toFixed(2)), max: parseFloat((maxY + pad).toFixed(2)), ticks: { color: '#888780', callback: v => v.toFixed(0) }, grid: { color: 'rgba(255,255,255,0.05)' } }
+    }
+  },
+  plugins: [candlestickPlugin]
+});
+</script>
+</body>
+</html>
