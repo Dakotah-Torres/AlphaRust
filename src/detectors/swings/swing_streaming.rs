@@ -64,8 +64,8 @@ pub struct SwingConfirmParams {
     params: Option<ConfirmationType>
 }
 pub struct StremingSwingDetector {
-    current_candle: Candle,
-    current_candidate: Candle, 
+    current_candle: Option<Candle>,
+    current_candidate: Option<Candle>, 
     swing_mode: SwingMode, 
     seeking_mode: SwingType, 
     confirmation_mode: ConfirmationType,
@@ -75,10 +75,8 @@ pub struct StremingSwingDetector {
 }
 
 impl StremingSwingDetector {
-    pub fn new(current_candle: Candle, current_candidate: Candle, swing_mode: SwingMode, seeking_mode: SwingType, confirmation_mode: ConfirmationType, swing_lookback: usize ) -> Self {
+    pub fn new( swing_mode: SwingMode, seeking_mode: SwingType, confirmation_mode: ConfirmationType, swing_lookback: usize ) -> Self {
         Self {
-            current_candle: current_candle,
-            current_candidate: current_candidate,
             swing_mode: swing_mode,
             seeking_mode: seeking_mode,
             confirmation_mode: confirmation_mode,
@@ -86,148 +84,188 @@ impl StremingSwingDetector {
             memory: SwingMemory::new(swing_lookback)
         }
     }
+    fn clean_candles(&mut self) {
+        self.current_candidate = None; 
+        self.current_candle = None;
+    }  
 
-    fn body_comapir(&self, candle: Candle) -> (f64, f64){
-        (candle_body_high, candle_body_low) =  if self.candle.is_bullish() {(self.candle.close, self.candle.open)} else {(self.candle.open, self.candle.close)};
+    fn process_candle(&mut self, incoming_candle: Candle) {
+        if let Some(current_candle) = self.current_candle {
+            if let Some(cur_candidate) = self.current_candidate {
+                (can_high, can_low) = get_candidate_levels(&cur_candidate); 
+                (high, low) = get_candidate_levels(current_candle);
+                match self.seeking_mode {
+                    SwingType::High => {
+                        if can_high < current_candle.close {
+                            self.current_candidate = Some(self.current_candle);
+                            self.current_candle = incoming_candle;
+                        }
 
-        (candle_body_high, candle_body_low)
-    }
-
-    fn percent_candle(&mut self, percent:f64) -> Swing {
-        match (self.seeking_mode, self.swing_mode) {
-            (SwingType::High, SwingMode::Body) => {
-                let (can_high, can_low) = body_comapir(self.current_candidate);
-                let swing_conf_trigger: f64 = con_low - abs(can_high - can_low) * (percent);
-                self.swing_detected(swing_conf_trigger)
-            }
-            (SwingType::Low, SwingMode::Body) => {
-                let (can_high, can_low) = body_comapir(self.current_candidate);
-                let swing_conf_trigger: f64 = can_high + abs(can_high - can_low) * (percent);
-                self.swing_detected(swing_conf_trigger)
-            }
-            (SwingType::High, SwingMode::Wick) => {
-                let swing_conf_trigger: f64 = self.current_candidate.low - abs(self.current_candidate.high - self.current_candidate.low) * (percent);
-                self.swing_detected(swing_conf_trigger)
-            }
-            (SwingType::Low, SwingMode::Wick) => {
-                let swing_conf_trigger: f64 = self.current_candidate.high + abs(self.current_candidate.high - self.current_candidate.low) * (percent);
-                self.swing_detected(swing_conf_trigger)
-            }
-        }
-    }
-
-    fn percent_price(&self, percent:f64) -> Swing {
-        match (self.seeking_mode, self.swing_mode) {
-            (SwingType::High, SwingMode::Body) => {
-                let (can_high, can_low) = body_comapir(self.current_candidate);
-                let swing_conf_trigger: f64 = con_low - (con_low *(1-percent));
-                self.swing_detected(swing_conf_trigger)
-            }
-            (SwingType::Low, SwingMode::Body) => {
-                let (can_high, can_low) = body_comapir(self.current_candidate);
-                let swing_conf_trigger: f64 = can_high + (can_high  * (1-percent));
-                self.swing_detected(swing_conf_trigger)
-            }
-            (SwingType::High, SwingMode::Wick) => {
-                let swing_conf_trigger: f64 = self.current_candidate.low - (self.current_candidate.low * (1-percent));
-                self.swing_detected(swing_conf_trigger)
-            }
-            (SwingType::Low, SwingMode::Wick) => {
-                let swing_conf_trigger: f64 = self.current_candidate.high + (self.current_candidate.high * (1-percent));
-                self.swing_detected(swing_conf_trigger)
-            }
-        }
-    }
-
-    fn ticks(&self, ticks: u32, tick_size: f64) -> f64 {
-        match (self.seeking_mode, self.swing_mode) {
-            (SwingType::High, SwingMode::Body) => {
-                let (can_high, can_low) = body_comapir(self.current_candidate);
-                let swing_conf_trigger: f64 = con_low - (ticks * tick_size);
-                self.swing_detected(swing_conf_trigger)
-            }
-            (SwingType::Low, SwingMode::Body) => {
-                let (can_high, can_low) = body_comapir(self.current_candidate);
-                let swing_conf_trigger: f64 = con_low + (ticks * tick_size);
-                self.swing_detected(swing_conf_trigger)
-            }
-            (SwingType::High, SwingMode::Wick) => {
-                let swing_conf_trigger: f64 = self.current_candidate.low - (ticks * tick_size);
-                self.swing_detected(swing_conf_trigger)
-            }
-            (SwingType::Low, SwingMode::Wick) => {
-                let swing_conf_trigger: f64 = self.current_candidate.high + (ticks * tick_size);
-                self.swing_detected(swing_conf_trigger)
-            }
-        }
-
-    }
-
-    fn candle_count(&mut self, count: usize) -> f64{
-        self.candle_counter = count;
-        match (self.seeking_mode, self.swing_mode) {
-            (SwingType::High, SwingMode::Body) => {
-                let (can_high, can_low) = body_comapir(self.current_candidate);
-                if self.candle_counter != 0 && can_low > self.current_candle.close {
-                    self.candle_counter -= 1;
-                    return
-                } else {
-                    let swing_conf_trigger: f64 = self.current_candle.close; 
-                    self.swing_detected(swing_conf_trigger)
+                    }
+                    SwingType::Low => {
+                        if can_low > current_candidate.close {
+                            self.current_candidate = Some(self.current_candle);
+                            self.current_candle = incoming_candle;
+                        }
+                    }
                 }
+
+            } else {
+                self.current_candidate = curr_candle;
+                return
             }
-            (SwingType::Low, SwingMode::Body) => {
-                let (can_high, can_low) = body_comapir(self.current_candidate);
-                if self.candle_counter != 0 && can_high > self.current_candle.close {
-                    self.candle_counter -= 1;
-                    return
-                } else {
-                    let swing_conf_trigger: f64 = self.current_candle.close; 
-                    self.swing_detected(swing_conf_trigger)
-                }
-            }
-            (SwingType::High, SwingMode::Wick) => {
-                if self.candle_counter != 0 && can_low > self.current_candle.close {
-                    self.candle_counter -= 1;
-                    return
-                } else {
-                    let swing_conf_trigger: f64 = self.current_candle.close; 
-                    self.swing_detected(swing_conf_trigger)
-                }
-            }
-            (SwingType::Low, SwingMode::Wick) => {
-                if self.candle_counter != 0 && self.current_candidate.low < self.current_candle.close {
-                    self.candle_counter -= 1;
-                    return
-                } else {
-                    let swing_conf_trigger: f64 = self.current_candle.close; 
-                    self.swing_detected(swing_conf_trigger)
-                }
-            }
+        } else {
+            self.current_candle = incoming_candle; 
+            return
         }
+        
     }
 
-    fn swing_detected(&mut self, trigger: f64) -> Swing {
+    fn get_candidate_levels(&self, candle: &Candle){
         match self.swing_mode {
+            SwingMode::Wick => (candle.high, candle.low),
+            SwingMode::Body => {
+                if candle.is_bullish() {
+                    (candle.close, candle.open)
+                } 
+                else {
+                    (candle.open, candle.close)
+                }
+            }
+        }
+    }
+
+    fn percent_candle(&mut self, percent:f64) -> Option<Swing> {
+        if let Some(candidate) = &self.current_candidate {
+            let (high, low) = self.get_candidate_levels(candidate);
+            let trigger = match self.seeking_mode {
+                SwingType::High => low - (high - low) * percent, 
+                SwingType::Low => high +  (high - low) * candle, 
+            }; 
+
+            self.swing_detected(trigger)
+        } 
+        else {
+            None
+        }
+    }
+
+    fn percent_price(&self, percent:f64) -> Option<Swing> {
+        if let Some(candidate) = &self.current_candidate {
+            let (high, low) = self.get_candidate_levels(candidate);
+            let trigger = match self.seeking_mode {
+                SwingType::High => low - (low * (1-percent)),
+                SwingType::Low => high + (high * (1 - percent)), 
+            }; 
+            self.swing_detected(trigger)
+        } else {
+            None
+        }
+    }
+
+    fn ticks(&self, ticks: u64, tick_size: f64) -> Option<Swing> {
+        if let Some(candidate) = &self.current_candidate {
+            let (high, low) = self.get_candidate_levels(candidate);
+            let trigger = match self.seeking_mode {
+                SwingType::High => low - (ticks as f64 * tick_size),
+                SwingType::Low => high + (ticks as f64 * tick_size),
+            }; 
+            self.swing_detected(trigger)
+        } else {
+            None
+        }
+
+    }
+
+    fn candle_count(&mut self, count: usize) -> Option<Swing> {
+        if let Some(candidate) = &self.current_candidate {
+            let (high, low) = self.get_candidate_levels(candidate);
+            if let Some(curr) = &self.current_candle {
+                let trigger = match self.seeking_mode {
+                    SwingType::High => {
+                        
+                        if self.candle_counter != 0 && low < curr.close {
+                            self.candle_counter -= 1;
+                            return None
+                        }
+                        else {
+                            curr.close
+                        }
+                    }
+                    SwingType::Low => {
+                        if self.candle_counter != 0 && high > curr.close {
+                            self.candle_counter -= 1;
+                            return None
+                        }
+                        else {
+                            
+                            curr.close
+                        }
+                    }
+                };
+                if let Some(swing) = self.swing_detected(trigger) {
+                    self.candle_counter = count;
+                    Some(swing)
+                }
+                else {
+                    None
+                }
+            } else {
+                None
+            }
+            
+        } else {
+            None 
+        }
+    }
+
+
+    
+    
+    
+    fn swing_detected(&mut self, trigger: f64,) -> Option<Swing> {
+        match self.seeking_mode {
 
             SwingType::High => {
 
-                if self.current_candle.close < trigger {
-                    self.seeking_mode = SwingType::Low; 
-                    Swing(self.current_candidate, SwingType::High, self.current_candidate.timestamp)
+                if let Some(curr) = &self.current_candle {
+                    if curr.close <  trigger{
+                        if let Some(candidate) = &self.current_candidate{
+                            self.seeking_mode = SwingType::Low; 
+                            Some(Swing::new(*candidate, SwingType::High, candidate.timestamp))
+                        }
+                        else {
+                            None
+                        }
+                    }
+                    else {
+                        return None
+                    }
+                    
                 }
                 else {
-                    return
+                    return None
                 }
             }
         
             SwingType::Low => {
-                if self.current_candle.close > trigger {
-                    self.seeking_mode = SwingType::High;
-                    Swing(self.current_candidate, SwingType::Low, self.current_candidate.timestamp)
+                if let Some(curr) = &self.current_candle{
+                    if curr.close > trigger {
+                        if let Some(candidate) = &self.current_candidate {
+                            self.seeking_mode = SwingType::High;
+                            Some(Swing::new(*candidate, SwingType::Low, candidate.timestamp))
+                        }
+                        else {
+                            None
+                        }
+                        
+                    } 
+                    else {
+                        return None
+                    } 
                 }
                 else {
-                    return
+                    return None
                 }
             }
 
@@ -255,6 +293,5 @@ impl StremingSwingDetector {
         
     } 
 
-} 
-
+}
 
