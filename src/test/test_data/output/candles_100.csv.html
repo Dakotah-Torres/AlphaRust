@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AlphaRust — candles_100.csv</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700&display=swap');
+:root{--bg:#080810;--sur:#0f0f1a;--bor:#1a1a2e;--acc:#7c6af7;--hi:#2ecc8f;--lo:#e8404f;--txt:#dddaf0;--mut:#5a576e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'DM Mono',monospace;font-size:13px;padding:28px}
+header{display:flex;align-items:baseline;gap:14px;margin-bottom:28px;border-bottom:1px solid var(--bor);padding-bottom:14px}
+header h1{font-family:'Syne',sans-serif;font-size:20px;color:var(--acc)}
+header span{color:var(--mut);font-size:11px}
+.card{background:var(--sur);border:1px solid var(--bor);border-radius:8px;padding:16px;margin-bottom:20px}
+.card h2{font-family:'Syne',sans-serif;font-size:13px;margin-bottom:12px}
+.tb{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.btn{background:var(--bg);border:1px solid var(--bor);color:var(--mut);padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;transition:all .15s}
+.btn.on{border-color:var(--acc);color:var(--acc);background:rgba(124,106,247,.08)}
+canvas{width:100%;height:400px;display:block;cursor:crosshair}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--mut);margin-top:8px}
+.legend span{display:flex;align-items:center;gap:5px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{text-align:left;padding:7px 9px;color:var(--mut);border-bottom:1px solid var(--bor);white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--bor)}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:8px 9px;white-space:nowrap}
+.mode{color:var(--acc)}.hi{color:var(--hi)}.lo{color:var(--lo)}
+</style></head><body>
+<header><h1>AlphaRust</h1><span>candles_100.csv</span></header>
+
+<div class="card">
+  <h2>Candlestick + Swings</h2>
+  <div class="tb" id="tb"></div>
+  <canvas id="cv"></canvas>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--hi)"></span>Swing high + confirmation</span>
+    <span><span class="dot" style="background:var(--lo)"></span>Swing low + confirmation</span>
+    <span><span class="dot" style="background:#2e2e3e"></span>Untagged</span>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Benchmark</h2>
+  <table>
+    <thead><tr><th>Mode</th><th>Candles</th><th class="hi">Highs</th><th class="lo">Lows</th><th>Ingest</th><th>Detect</th><th>Total</th><th>Speed</th><th>Swing rate</th></tr></thead>
+    <tbody><tr><td class="mode">PercentCandle (0.3%)</td><td>100</td><td class="hi">14</td><td class="lo">13</td><td>0.1ms</td><td>0.0ms</td><td>0.1ms</td><td>717.7K/s</td><td>27.00%</td></tr><tr><td class="mode">PercentPrice (0.01%)</td><td>100</td><td class="hi">0</td><td class="lo">0</td><td>0.1ms</td><td>0.0ms</td><td>0.1ms</td><td>693.8K/s</td><td>0.00%</td></tr><tr><td class="mode">Ticks (4 @ 0.25)</td><td>100</td><td class="hi">14</td><td class="lo">13</td><td>0.1ms</td><td>0.0ms</td><td>0.1ms</td><td>883.4K/s</td><td>27.00%</td></tr><tr><td class="mode">Candles (1)</td><td>100</td><td class="hi">0</td><td class="lo">0</td><td>0.1ms</td><td>0.0ms</td><td>0.1ms</td><td>947.4K/s</td><td>0.00%</td></tr></tbody>
+  </table>
+</div>
+
+<script>
+const CANDLES=[{t:1700000000,o:45000.00,h:45012.25,l:44996.91,c:45003.69},{t:1700000060,o:45005.44,h:45015.41,l:44984.24,c:44992.09},{t:1700000120,o:44994.22,h:44994.63,l:44988.78,c:44991.77},{t:1700000180,o:44991.44,h:44999.40,l:44977.80,c:44985.48},{t:1700000240,o:44984.57,h:44986.36,l:44964.90,c:44977.40},{t:1700000300,o:44975.70,h:44988.31,l:44954.97,c:44966.69},{t:1700000360,o:44965.69,h:44990.58,l:44958.70,c:44982.34},{t:1700000420,o:44980.01,h:45002.51,l:44967.96,c:44994.44},{t:1700000480,o:44993.27,h:45019.23,l:44988.74,c:45010.45},{t:1700000540,o:45011.22,h:45031.12,l:45003.82,c:45025.46},{t:1700000600,o:45025.27,h:45053.56,l:45014.50,c:45045.83},{t:1700000660,o:45048.02,h:45086.17,l:45047.82,c:45070.76},{t:1700000720,o:45072.76,h:45090.97,l:45069.71,c:45084.83},{t:1700000780,o:45087.06,h:45108.23,l:45086.86,c:45097.36},{t:1700000840,o:45095.45,h:45136.42,l:45090.10,c:45133.74},{t:1700000900,o:45134.00,h:45135.43,l:45118.51,c:45123.94},{t:1700000960,o:45126.07,h:45131.11,l:45111.14,c:45115.86},{t:1700001020,o:45118.81,h:45122.47,l:45096.17,c:45106.34},{t:1700001080,o:45107.17,h:45107.37,l:45084.75,c:45092.99},{t:1700001140,o:45093.53,h:45101.52,l:45070.35,c:45081.14},{t:1700001200,o:45079.96,h:45106.81,l:45073.08,c:45100.49},{t:1700001260,o:45102.94,h:45122.78,l:45092.88,c:45116.41},{t:1700001320,o:45118.56,h:45136.17,l:45107.51,c:45123.58},{t:1700001380,o:45126.07,h:45153.05,l:45118.97,c:45141.62},{t:1700001440,o:45140.55,h:45157.27,l:45124.47,c:45146.65},{t:1700001500,o:45146.80,h:45162.26,l:45143.31,c:45160.93},{t:1700001560,o:45164.27,h:45181.33,l:45157.42,c:45175.24},{t:1700001620,o:45177.19,h:45188.68,l:45173.80,c:45181.63},{t:1700001680,o:45181.20,h:45199.15,l:45171.50,c:45197.89},{t:1700001740,o:45195.89,h:45205.52,l:45188.35,c:45202.00},{t:1700001800,o:45198.53,h:45223.38,l:45190.19,c:45210.10},{t:1700001860,o:45206.56,h:45213.76,l:45196.84,c:45208.08},{t:1700001920,o:45209.86,h:45231.26,l:45194.58,c:45220.26},{t:1700001980,o:45219.03,h:45252.00,l:45216.24,c:45243.49},{t:1700002040,o:45240.70,h:45262.42,l:45231.26,c:45260.23},{t:1700002100,o:45258.29,h:45268.93,l:45246.55,c:45266.88},{t:1700002160,o:45268.51,h:45284.26,l:45256.88,c:45275.61},{t:1700002220,o:45273.16,h:45291.33,l:45262.01,c:45284.18},{t:1700002280,o:45282.51,h:45299.61,l:45275.12,c:45293.00},{t:1700002340,o:45295.41,h:45322.82,l:45292.83,c:45310.51},{t:1700002400,o:45309.63,h:45318.72,l:45303.50,c:45316.18},{t:1700002460,o:45313.90,h:45330.65,l:45313.70,c:45323.31},{t:1700002520,o:45323.77,h:45349.71,l:45320.71,c:45338.54},{t:1700002580,o:45341.54,h:45367.91,l:45329.40,c:45358.56},{t:1700002640,o:45355.77,h:45361.46,l:45325.01,c:45334.27},{t:1700002700,o:45331.36,h:45337.92,l:45328.85,c:45335.12},{t:1700002760,o:45332.52,h:45337.53,l:45312.70,c:45321.73},{t:1700002820,o:45323.21,h:45336.59,l:45319.14,c:45332.38},{t:1700002880,o:45334.39,h:45345.86,l:45321.12,c:45328.25},{t:1700002940,o:45326.73,h:45337.78,l:45316.73,c:45322.35},{t:1700003000,o:45323.49,h:45350.04,l:45315.66,c:45345.49},{t:1700003060,o:45343.04,h:45361.30,l:45339.14,c:45357.41},{t:1700003120,o:45358.34,h:45367.75,l:45349.05,c:45361.45},{t:1700003180,o:45363.19,h:45383.28,l:45357.35,c:45381.39},{t:1700003240,o:45377.82,h:45413.92,l:45375.64,c:45402.33},{t:1700003300,o:45404.11,h:45426.50,l:45389.00,c:45421.95},{t:1700003360,o:45423.34,h:45447.26,l:45407.49,c:45441.39},{t:1700003420,o:45442.78,h:45458.89,l:45433.48,c:45455.26},{t:1700003480,o:45456.76,h:45488.34,l:45446.68,c:45479.18},{t:1700003540,o:45481.64,h:45507.16,l:45475.34,c:45498.27},{t:1700003600,o:45500.64,h:45520.58,l:45497.19,c:45511.80},{t:1700003660,o:45508.48,h:45539.21,l:45500.23,c:45532.93},{t:1700003720,o:45530.08,h:45563.09,l:45523.22,c:45554.51},{t:1700003780,o:45550.06,h:45571.52,l:45545.00,c:45560.88},{t:1700003840,o:45562.88,h:45579.09,l:45556.68,c:45564.73},{t:1700003900,o:45566.49,h:45591.94,l:45564.84,c:45588.98},{t:1700003960,o:45588.17,h:45593.60,l:45581.88,c:45584.70},{t:1700004020,o:45587.33,h:45613.14,l:45578.84,c:45608.20},{t:1700004080,o:45608.81,h:45621.68,l:45603.76,c:45613.53},{t:1700004140,o:45615.68,h:45633.89,l:45609.80,c:45629.31},{t:1700004200,o:45630.42,h:45648.22,l:45625.15,c:45641.73},{t:1700004260,o:45641.35,h:45658.40,l:45635.14,c:45651.94},{t:1700004320,o:45647.64,h:45679.11,l:45643.91,c:45672.44},{t:1700004380,o:45673.32,h:45695.50,l:45669.26,c:45683.60},{t:1700004440,o:45682.20,h:45687.29,l:45649.78,c:45654.85},{t:1700004500,o:45651.75,h:45678.05,l:45647.44,c:45668.59},{t:1700004560,o:45670.47,h:45691.73,l:45667.67,c:45686.21},{t:1700004620,o:45687.70,h:45714.48,l:45673.59,c:45706.27},{t:1700004680,o:45708.75,h:45725.66,l:45703.85,c:45719.28},{t:1700004740,o:45717.48,h:45735.61,l:45709.80,c:45728.60},{t:1700004800,o:45727.24,h:45740.16,l:45709.42,c:45713.46},{t:1700004860,o:45715.96,h:45716.98,l:45684.60,c:45695.30},{t:1700004920,o:45693.15,h:45700.65,l:45668.21,c:45675.83},{t:1700004980,o:45675.77,h:45682.43,l:45671.31,c:45672.78},{t:1700005040,o:45670.63,h:45679.20,l:45652.83,c:45657.57},{t:1700005100,o:45656.45,h:45666.12,l:45651.34,c:45664.38},{t:1700005160,o:45663.40,h:45665.16,l:45642.55,c:45655.85},{t:1700005220,o:45658.57,h:45692.07,l:45651.19,c:45684.92},{t:1700005280,o:45681.82,h:45701.94,l:45677.53,c:45692.49},{t:1700005340,o:45690.85,h:45716.00,l:45685.22,c:45700.98},{t:1700005400,o:45700.76,h:45710.55,l:45666.51,c:45682.66},{t:1700005460,o:45680.12,h:45685.84,l:45656.03,c:45665.04},{t:1700005520,o:45663.45,h:45670.29,l:45652.53,c:45663.52},{t:1700005580,o:45665.85,h:45683.93,l:45662.77,c:45675.87},{t:1700005640,o:45679.62,h:45697.96,l:45671.66,c:45690.02},{t:1700005700,o:45688.72,h:45690.83,l:45659.90,c:45669.91},{t:1700005760,o:45665.67,h:45678.21,l:45650.70,c:45657.05},{t:1700005820,o:45656.96,h:45680.03,l:45650.32,c:45668.00},{t:1700005880,o:45668.51,h:45699.92,l:45659.16,c:45689.13},{t:1700005940,o:45688.46,h:45703.24,l:45682.51,c:45702.60}];
+const MODES=[{label:"PercentCandle (0.3%)",points:[{t:1700000000,p:45012.25,h:true},{t:1700000240,p:44986.36,h:true},{t:1700000240,p:44986.36,h:false},{t:1700000840,p:45136.42,h:true},{t:1700000840,p:45136.42,h:true},{t:1700000840,p:45136.42,h:false},{t:1700000840,p:45136.42,h:false},{t:1700002580,p:45367.91,h:true},{t:1700002580,p:45367.91,h:false},{t:1700002880,p:45345.86,h:true},{t:1700002880,p:45345.86,h:false},{t:1700004380,p:45695.50,h:true},{t:1700004380,p:45695.50,h:false},{t:1700004500,p:45678.05,h:true},{t:1700004500,p:45678.05,h:false},{t:1700004740,p:45735.61,h:true},{t:1700004740,p:45735.61,h:false},{t:1700005040,p:45679.20,h:true},{t:1700005040,p:45679.20,h:false},{t:1700005280,p:45701.94,h:true},{t:1700005280,p:45701.94,h:false},{t:1700005520,p:45670.29,h:true},{t:1700005520,p:45670.29,h:false},{t:1700005640,p:45697.96,h:true},{t:1700005640,p:45697.96,h:false},{t:1700005760,p:45678.21,h:true},{t:1700005760,p:45678.21,h:false}]},{label:"PercentPrice (0.01%)",points:[]},{label:"Ticks (4 @ 0.25)",points:[{t:1700000000,p:45012.25,h:true},{t:1700000240,p:44986.36,h:true},{t:1700000240,p:44986.36,h:false},{t:1700000840,p:45136.42,h:true},{t:1700000840,p:45136.42,h:true},{t:1700000840,p:45136.42,h:false},{t:1700000840,p:45136.42,h:false},{t:1700002580,p:45367.91,h:true},{t:1700002580,p:45367.91,h:false},{t:1700002880,p:45345.86,h:true},{t:1700002880,p:45345.86,h:false},{t:1700004380,p:45695.50,h:true},{t:1700004380,p:45695.50,h:false},{t:1700004500,p:45678.05,h:true},{t:1700004500,p:45678.05,h:false},{t:1700004740,p:45735.61,h:true},{t:1700004740,p:45735.61,h:false},{t:1700005040,p:45679.20,h:true},{t:1700005040,p:45679.20,h:false},{t:1700005280,p:45701.94,h:true},{t:1700005280,p:45701.94,h:false},{t:1700005520,p:45670.29,h:true},{t:1700005520,p:45670.29,h:false},{t:1700005640,p:45697.96,h:true},{t:1700005640,p:45697.96,h:false},{t:1700005760,p:45678.21,h:true},{t:1700005760,p:45678.21,h:false}]},{label:"Candles (1)",points:[]}];
+let active=0;
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+
+function resize(){
+  const w=cv.parentElement.clientWidth-32,h=400,dpr=window.devicePixelRatio||1;
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.width=w+'px';cv.style.height=h+'px';
+  ctx.scale(dpr,dpr);draw();
+}
+
+function draw(){
+  const W=cv.width/(window.devicePixelRatio||1),H=cv.height/(window.devicePixelRatio||1);
+  ctx.clearRect(0,0,W,H);
+  if(!CANDLES.length)return;
+  const pad={l:58,r:14,t:14,b:26};
+  const CW=W-pad.l-pad.r,CH=H-pad.t-pad.b;
+
+  let lo=Infinity,hi=-Infinity;
+  for(const c of CANDLES){if(c.l<lo)lo=c.l;if(c.h>hi)hi=c.h;}
+  const swings=MODES[active]?.points||[];
+  for(const s of swings){if(s.p<lo)lo=s.p;if(s.p>hi)hi=s.p;}
+  const rng=(hi-lo)||1;lo-=rng*.05;hi+=rng*.05;
+  const TR=hi-lo;
+  function py(p){return pad.t+CH*(1-(p-lo)/TR);}
+
+  const gap=CW/CANDLES.length;
+  const cw=Math.max(1,gap-1);
+
+  // tag candles by nearest timestamp
+  const tsArr=CANDLES.map(c=>c.t);
+  function nearIdx(ts){
+    let a=0,b=tsArr.length-1;
+    while(a<b){const m=(a+b)>>1;if(tsArr[m]<ts)a=m+1;else b=m;}
+    return a;
+  }
+  const tags=new Int8Array(CANDLES.length);
+  const WING=2;
+  for(const s of swings){
+    const i=nearIdx(s.t);
+    if(s.h){
+      tags[i]=1;
+      for(let k=1;k<=WING;k++){if(i-k>=0&&tags[i-k]===0)tags[i-k]=2;if(i+k<tags.length&&tags[i+k]===0)tags[i+k]=2;}
+    }else{
+      tags[i]=-1;
+      for(let k=1;k<=WING;k++){if(i-k>=0&&tags[i-k]===0)tags[i-k]=-2;if(i+k<tags.length&&tags[i+k]===0)tags[i+k]=-2;}
+    }
+  }
+
+  function col(tag,bull){
+    if(tag===1) return bull?'#2ecc8f':'#1a9966';
+    if(tag===2) return bull?'#1a6644':'#144d33';
+    if(tag===-1)return bull?'#e8404f':'#b02030';
+    if(tag===-2)return bull?'#6b1a22':'#4d1219';
+    return '#2e2e3e';
+  }
+
+  // grid
+  ctx.strokeStyle='#1a1a2e';ctx.lineWidth=.5;
+  for(let i=0;i<=5;i++){
+    const y=pad.t+(CH/5)*i;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+CW,y);ctx.stroke();
+    ctx.fillStyle='#5a576e';ctx.font='10px DM Mono,monospace';ctx.textAlign='right';
+    ctx.fillText((hi-(TR/5)*i).toFixed(0),pad.l-4,y+3);
+  }
+
+  // candles
+  for(let i=0;i<CANDLES.length;i++){
+    const c=CANDLES[i];
+    const x=pad.l+i*gap+gap/2;
+    const bull=c.c>=c.o;
+    const color=col(tags[i],bull);
+    ctx.strokeStyle=color;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,py(c.h));ctx.lineTo(x,py(c.l));ctx.stroke();
+    const by=py(Math.max(c.o,c.c));
+    const bh=Math.max(1,py(Math.min(c.o,c.c))-by);
+    ctx.fillStyle=color;ctx.fillRect(x-cw/2,by,cw,bh);
+  }
+
+  // swing markers
+  for(const s of swings){
+    const x=pad.l+nearIdx(s.t)*gap+gap/2;
+    const y=py(s.p);
+    ctx.fillStyle=s.h?'#2ecc8f':'#e8404f';
+    ctx.beginPath();
+    if(s.h){ctx.moveTo(x,y-10);ctx.lineTo(x-5,y);ctx.lineTo(x+5,y);}
+    else   {ctx.moveTo(x,y+10);ctx.lineTo(x-5,y);ctx.lineTo(x+5,y);}
+    ctx.closePath();ctx.fill();
+  }
+}
+
+// toolbar
+const tb=document.getElementById('tb');
+MODES.forEach((m,i)=>{
+  const b=document.createElement('button');
+  b.className='btn'+(i===0?' on':'');
+  b.textContent=m.label;
+  b.onclick=()=>{active=i;tb.querySelectorAll('.btn').forEach((x,j)=>x.classList.toggle('on',j===i));draw();};
+  tb.appendChild(b);
+});
+
+window.addEventListener('resize',resize);
+resize();
+</script>
+</body></html>
